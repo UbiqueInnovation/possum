@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use chrono::{Days, Utc};
 use serde_json::json;
 
 pub mod parser;
@@ -565,6 +566,22 @@ impl Comparison {
                         Expression::Atomic(Value::String(a)),
                         Expression::Atomic(Value::String(b)),
                     ) => Ok(Expression::Atomic(Value::Bool(a < b))),
+
+                    (Expression::Atomic(Value::String(a)), Expression::Atomic(Value::Int(b))) => {
+                        if let Ok(a_num) = a.parse::<i128>() {
+                            Ok(Expression::Atomic(Value::Bool(a_num < *b)))
+                        } else {
+                            Err(String::from("Could not parse string to number"))
+                        }
+                    }
+                    (Expression::Atomic(Value::Int(a)), Expression::Atomic(Value::String(b))) => {
+                        if let Ok(b_num) = b.parse::<i128>() {
+                            Ok(Expression::Atomic(Value::Bool(a < &b_num)))
+                        } else {
+                            Err(String::from("Could not parse string to number"))
+                        }
+                    }
+
                     (Expression::Atomic(Value::Null), Expression::Atomic(Value::Null)) => {
                         Ok(Expression::Atomic(Value::Bool(true)))
                     }
@@ -598,6 +615,21 @@ impl Comparison {
                         Expression::Atomic(Value::String(a)),
                         Expression::Atomic(Value::String(b)),
                     ) => Ok(Expression::Atomic(Value::Bool(a <= b))),
+
+                    (Expression::Atomic(Value::String(a)), Expression::Atomic(Value::Int(b))) => {
+                        if let Ok(a_num) = a.parse::<i128>() {
+                            Ok(Expression::Atomic(Value::Bool(a_num <= *b)))
+                        } else {
+                            Err(String::from("Could not parse string to number"))
+                        }
+                    }
+                    (Expression::Atomic(Value::Int(a)), Expression::Atomic(Value::String(b))) => {
+                        if let Ok(b_num) = b.parse::<i128>() {
+                            Ok(Expression::Atomic(Value::Bool(a <= &b_num)))
+                        } else {
+                            Err(String::from("Could not parse string to number"))
+                        }
+                    }
                     _ => Err(format!("cannot compare {:?} {:?}", a, b)),
                 }
             }
@@ -620,7 +652,22 @@ impl Comparison {
                     (
                         Expression::Atomic(Value::String(a)),
                         Expression::Atomic(Value::String(b)),
-                    ) => Ok(Expression::Atomic(Value::Bool(a <= b))),
+                    ) => Ok(Expression::Atomic(Value::Bool(a > b))),
+
+                    (Expression::Atomic(Value::String(a)), Expression::Atomic(Value::Int(b))) => {
+                        if let Ok(a_num) = a.parse::<i128>() {
+                            Ok(Expression::Atomic(Value::Bool(a_num > *b)))
+                        } else {
+                            Err(String::from("Could not parse string to number"))
+                        }
+                    }
+                    (Expression::Atomic(Value::Int(a)), Expression::Atomic(Value::String(b))) => {
+                        if let Ok(b_num) = b.parse::<i128>() {
+                            Ok(Expression::Atomic(Value::Bool(a > &b_num)))
+                        } else {
+                            Err(String::from("Could not parse string to number"))
+                        }
+                    }
                     _ => Err(format!("cannot compare {:?} {:?}", a, b)),
                 }
             }
@@ -644,6 +691,20 @@ impl Comparison {
                         Expression::Atomic(Value::String(a)),
                         Expression::Atomic(Value::String(b)),
                     ) => Ok(Expression::Atomic(Value::Bool(a >= b))),
+                    (Expression::Atomic(Value::String(a)), Expression::Atomic(Value::Int(b))) => {
+                        if let Ok(a_num) = a.parse::<i128>() {
+                            Ok(Expression::Atomic(Value::Bool(a_num >= *b)))
+                        } else {
+                            Err(String::from("Could not parse string to number"))
+                        }
+                    }
+                    (Expression::Atomic(Value::Int(a)), Expression::Atomic(Value::String(b))) => {
+                        if let Ok(b_num) = b.parse::<i128>() {
+                            Ok(Expression::Atomic(Value::Bool(a >= &b_num)))
+                        } else {
+                            Err(String::from("Could not parse string to number"))
+                        }
+                    }
                     _ => Err(format!("cannot compare {:?} {:?}", a, b)),
                 }
             }
@@ -667,6 +728,14 @@ impl Comparison {
                         Expression::Atomic(Value::String(a)),
                         Expression::Atomic(Value::String(b)),
                     ) => Ok(Expression::Atomic(Value::Bool(a == b))),
+                    (Expression::Atomic(Value::String(a)), Expression::Atomic(Value::Int(b)))
+                    | (Expression::Atomic(Value::Int(b)), Expression::Atomic(Value::String(a))) => {
+                        if let Ok(a_num) = a.parse::<i128>() {
+                            Ok(Expression::Atomic(Value::Bool(a_num == *b)))
+                        } else {
+                            Err(String::from("Could not parse string to number"))
+                        }
+                    }
                     _ => Err(format!("cannot compare {:?} {:?}", a, b)),
                 }
             }
@@ -690,13 +759,62 @@ impl Comparison {
                         Expression::Atomic(Value::String(a)),
                         Expression::Atomic(Value::String(b)),
                     ) => Ok(Expression::Atomic(Value::Bool(a != b))),
+
+                    (Expression::Atomic(Value::String(a)), Expression::Atomic(Value::Int(b)))
+                    | (Expression::Atomic(Value::Int(b)), Expression::Atomic(Value::String(a))) => {
+                        if let Ok(a_num) = a.parse::<i128>() {
+                            Ok(Expression::Atomic(Value::Bool(a_num != *b)))
+                        } else {
+                            Err(String::from("Could not parse string to number"))
+                        }
+                    }
                     _ => Err(format!("cannot compare {:?} {:?}", a, b)),
                 }
             }
-            Comparison::Before(_, _) => Err("Not implemented".to_string()),
-            Comparison::NotBefore(_, _) => Err("Not implemented".to_string()),
-            Comparison::After(_, _) => Err("Not implemented".to_string()),
-            Comparison::NotAfter(_, _) => Err("Not implemented".to_string()),
+            Comparison::Before(a, b) => {
+                let a = a.eval(data)?;
+                let b = b.eval(data)?;
+                match (&a, &b) {
+                    (
+                        Expression::Atomic(Value::TemporalAmount(a)),
+                        Expression::Atomic(Value::TemporalAmount(b)),
+                    ) => Ok(Expression::Atomic(Value::Bool(a < b))),
+                    _ => Err(format!("cannot compare {:?} {:?}", a, b)),
+                }
+            }
+            Comparison::NotBefore(a, b) => {
+                let a = a.eval(data)?;
+                let b = b.eval(data)?;
+                match (&a, &b) {
+                    (
+                        Expression::Atomic(Value::TemporalAmount(a)),
+                        Expression::Atomic(Value::TemporalAmount(b)),
+                    ) => Ok(Expression::Atomic(Value::Bool(a >= b))),
+                    _ => Err(format!("cannot compare {:?} {:?}", a, b)),
+                }
+            }
+            Comparison::After(a, b) => {
+                let a = a.eval(data)?;
+                let b = b.eval(data)?;
+                match (&a, &b) {
+                    (
+                        Expression::Atomic(Value::TemporalAmount(a)),
+                        Expression::Atomic(Value::TemporalAmount(b)),
+                    ) => Ok(Expression::Atomic(Value::Bool(a > b))),
+                    _ => Err(format!("cannot compare {:?} {:?}", a, b)),
+                }
+            }
+            Comparison::NotAfter(a, b) => {
+                let a = a.eval(data)?;
+                let b = b.eval(data)?;
+                match (&a, &b) {
+                    (
+                        Expression::Atomic(Value::TemporalAmount(a)),
+                        Expression::Atomic(Value::TemporalAmount(b)),
+                    ) => Ok(Expression::Atomic(Value::Bool(a <= b))),
+                    _ => Err(format!("cannot compare {:?} {:?}", a, b)),
+                }
+            }
         }
     }
     pub fn to_json_logic(&self) -> serde_json::Value {
@@ -780,6 +898,24 @@ fn apply_operation(
     }
 }
 
+fn parse_date_time_to_timestamp(date: &str) -> Result<i64, String> {
+    if let Ok(date) = date.parse::<chrono::NaiveDate>() {
+        return Ok(date
+            .and_hms_opt(0, 0, 0)
+            .unwrap()
+            .and_utc()
+            .timestamp_millis());
+    }
+    if let Ok(date) = date.parse::<chrono::DateTime<Utc>>() {
+        return Ok(date.timestamp_millis());
+    }
+    let new_date = format!("{date}Z");
+    if let Ok(date) = new_date.parse::<chrono::DateTime<Utc>>() {
+        return Ok(date.timestamp_millis());
+    }
+    Err("Could not parse date".to_string())
+}
+
 impl Operation {
     pub fn eval(&self, data: &serde_json::Value) -> Result<Expression, String> {
         match self {
@@ -801,8 +937,68 @@ impl Operation {
                 data,
                 |left, right| left * right,
             ),
-            Operation::PlusTime(_left, _right) => Err("Not implemented".to_string()),
-            Operation::MinusTime(_left, _right) => Err("Not implemented".to_string()),
+            Operation::PlusTime(left, right) => {
+                //"2024-01-01" is before "2024-02-02"
+                let Expression::Atomic(Value::Int(seconds)) = right.eval(data)? else {
+                    return Err(format!(
+                        "TimeInterval should be TimeInterval {:?}",
+                        right.eval(data)
+                    ));
+                };
+
+                match left.eval(data)? {
+                    Expression::Atomic(Value::String(left)) => {
+                        let Ok(left) = parse_date_time_to_timestamp(&left) else {
+                            return Err(format!(
+                                "Cannot parse DateTime, {:?}",
+                                chrono::NaiveDate::parse_from_str(&left, "%Y-%m-%d")
+                            ));
+                        };
+
+                        Ok(Expression::Atomic(Value::TemporalAmount(
+                            left as i128 + (seconds * 1000) as i128,
+                        )))
+                    }
+                    Expression::Atomic(Value::TemporalAmount(left)) => Ok(Expression::Atomic(
+                        Value::TemporalAmount(left + (seconds * 1000) as i128),
+                    )),
+                    _ => Err(format!(
+                        "TimeInterval should be TimeInterval {:?}",
+                        right.eval(data)
+                    )),
+                }
+            }
+            Operation::MinusTime(left, right) => {
+                //"2024-01-01" is before "2024-02-02"
+                let Expression::Atomic(Value::Int(seconds)) = right.eval(data)? else {
+                    return Err(format!(
+                        "TimeInterval should be TimeInterval {:?}",
+                        right.eval(data)
+                    ));
+                };
+
+                match left.eval(data)? {
+                    Expression::Atomic(Value::String(left)) => {
+                        let Ok(left) = parse_date_time_to_timestamp(&left) else {
+                            return Err(format!(
+                                "Cannot parse DateTime, {:?}",
+                                chrono::NaiveDate::parse_from_str(&left, "%Y-%m-%d")
+                            ));
+                        };
+
+                        Ok(Expression::Atomic(Value::TemporalAmount(
+                            left as i128 + (seconds * 1000) as i128,
+                        )))
+                    }
+                    Expression::Atomic(Value::TemporalAmount(left)) => Ok(Expression::Atomic(
+                        Value::TemporalAmount(left - (seconds * 1000) as i128),
+                    )),
+                    _ => Err(format!(
+                        "TimeInterval should be TimeInterval {:?}",
+                        right.eval(data)
+                    )),
+                }
+            }
             Operation::And(left, right) => {
                 let left = left.eval(data)?;
                 let right = right.eval(data)?;

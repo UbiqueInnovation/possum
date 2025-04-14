@@ -1126,6 +1126,52 @@ mod tests {
         });
         println!("{}", logic);
     }
+    #[test]
+    fn test_int_conversion() {
+        let logic_input = r#""26" > 25"#;
+        let r = super::arithmetic::expression(logic_input).unwrap();
+        assert!(r.eval(&Value::Null).unwrap().as_bool().unwrap());
+        let logic_input = r#"25 < "26""#;
+        let r = super::arithmetic::expression(logic_input).unwrap();
+        assert!(r.eval(&Value::Null).unwrap().as_bool().unwrap());
+    }
+    #[test]
+    fn test_eval_time_operation() {
+        let logic_input = r#""2024-01-01" is before "2024-02-02""#;
+        let r = super::arithmetic::expression(logic_input).unwrap();
+        assert!(r.eval(&Value::Null).unwrap().as_bool().unwrap());
+
+        let logic_input = r#""2024-01-01" is not after "2024-02-02""#;
+        let r = super::arithmetic::expression(logic_input).unwrap();
+        assert!(r.eval(&Value::Null).unwrap().as_bool().unwrap());
+
+        let logic_input = r#""2024-02-02" is after "2024-01-01""#;
+        let r = super::arithmetic::expression(logic_input).unwrap();
+        assert!(r.eval(&Value::Null).unwrap().as_bool().unwrap());
+        let logic_input = r#""2024-02-02" is not before "2024-01-01""#;
+        let r = super::arithmetic::expression(logic_input).unwrap();
+        assert!(r.eval(&Value::Null).unwrap().as_bool().unwrap());
+
+        let logic_input = r#""2024-01-01" is before ("2024-01-01" + 180#days)"#;
+        let r = super::arithmetic::expression(logic_input).unwrap();
+        println!("{:?}", r.eval(&Value::Null));
+        assert!(r.eval(&Value::Null).unwrap().as_bool().unwrap());
+
+        let logic_input = r#""2024-01-01T00:00:00Z" is before "2024-01-01T01:00:01+01:00""#;
+        let r = super::arithmetic::expression(logic_input).unwrap();
+        println!("{:?}", r.eval(&Value::Null));
+        assert!(r.eval(&Value::Null).unwrap().as_bool().unwrap());
+
+        let logic_input = r#""2024-01-01T00:00:00Z" is before "2024-01-01T01:00:00+01:00""#;
+        let r = super::arithmetic::expression(logic_input).unwrap();
+        println!("{:?}", r.eval(&Value::Null));
+        assert!(!r.eval(&Value::Null).unwrap().as_bool().unwrap());
+
+        let logic_input = r#"("2024-01-01T00:00:00Z" is not before "2024-01-01T00:00:00") and ("2024-01-01T00:00:00Z" is not after "2024-01-01T00:00:00")"#;
+        let r = super::arithmetic::expression(logic_input).unwrap();
+        println!("{:?}", r.eval(&Value::Null));
+        assert!(r.eval(&Value::Null).unwrap().as_bool().unwrap());
+    }
 }
 
 #[macro_export]
