@@ -17,9 +17,11 @@ pub grammar arithmetic() for str {
         p
     }
     rule part() -> &'input str = quiet!{$(!keyword() ['a'..='z' | 'A'..='Z'| '0'..='9' | '_' |'-']+)}/expected!("Variable")
-    rule path() -> Vec<&'input str> =  first:$(['a'..='z' | 'A'..='Z' ]+['a'..='z' | 'A'..='Z'| '0'..='9' | '_' |'-']*)rest:(quoted_part() / pointed_part())* {
+    rule path() -> Vec<&'input str> = first:$("$"/  (['a'..='z' | 'A'..='Z' ]+['a'..='z' | 'A'..='Z'| '0'..='9' | '_' |'-']*))rest:(quoted_part() / pointed_part())* {
         let mut r = rest.clone();
-        r.insert(0, first);
+        if(first != "$") {
+            r.insert(0, first);
+        }
         r
     }
     rule var() -> Vec<String> = !keyword() p:path() {
@@ -687,7 +689,7 @@ mod tests {
     #[test]
     fn test_jsonpath() {
         let logic = r#"
-            if(payload."$['trest.a'][]" == 1) {
+            if($."ch.ubique.test"."$['trest.a'][]" == 1) {
                 true
             } else {
                 false
@@ -697,7 +699,7 @@ mod tests {
         println!("{:?}", logic);
         let result = logic
             .eval(&json!({
-                "payload" : {
+                "ch.ubique.test" : {
                     "$['trest.a'][]": 1
                 }
             }))
