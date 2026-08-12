@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use chrono::{Days, Utc};
+use chrono::Utc;
 use serde_json::json;
 
 pub mod parser;
@@ -1167,7 +1167,8 @@ mod tests {
     }
 
     #[test]
-    fn test_eval() {
+    #[cfg(feature = "jsonlogic")]
+    fn test_eval_jsonlogic() {
         let mut duration_eval = 0;
         let mut duration_json = 0;
         let logic: Expression = super::arithmetic::expression(
@@ -1221,5 +1222,15 @@ mod tests {
                 .to_json_logic(),
             serde_json::Value::Bool(true)
         );
+    }
+    #[test]
+    fn test_in_operator() {
+        let logic: Expression = super::arithmetic::expression("[1,2,3]::in(2)").unwrap();
+        let result = logic.eval(&json! {{}}).unwrap();
+        if let Expression::Atomic(crate::Value::Bool(b)) = result {
+            assert_eq!(b, true);
+        } else {
+            panic!("should be bool")
+        }
     }
 }

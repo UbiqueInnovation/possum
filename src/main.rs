@@ -2,10 +2,10 @@ fn main() {
     let expression = jlc::arithmetic::expression(
         r#"
         /* TEST COMMENT */
-        let test = a;
+        let a = "test";
         if (
             /* OTHER */
-            a === external.acceptance-criterias.diseases.sarscov2 ?? "test"
+            a === (external.acceptance-criterias.diseases.sarscov2 ?? "test")
             &&
             payload.v.0.dn >= payload.v.0.sd
             && payload.v.0.sd >= 2
@@ -24,15 +24,18 @@ fn main() {
     .unwrap();
 
     println!("{:?}", expression);
-    let expression = expression.to_json_logic();
+    let expression_jsonlogic = expression.to_json_logic();
 
-    println!("{}", serde_json::to_string_pretty(&expression).unwrap());
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&expression_jsonlogic).unwrap()
+    );
     let data = serde_json::json!(
         {
             "external": {
                 "acceptance-criterias" : {
                     "diseases" : {
-                        "sarscov2" : "840539006"
+                        "sarscov2a" : "840539006"
                     }
                 }
             },
@@ -61,5 +64,8 @@ fn main() {
             ]
         }
     });
-    println!("{:#?}", jsonlogic::apply(&expression, &data));
+
+    println!("{:#?}", expression.eval(&data));
+    #[cfg(feature = "jsonlogic")]
+    println!("{:#?}", jsonlogic::apply(&expression_jsonlogic, &data));
 }

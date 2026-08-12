@@ -1,6 +1,6 @@
 [package]
 name = "jlc"
-version = "0.2.1"
+version = "0.3.0"
 edition = "2018"
 
 [lib]
@@ -9,6 +9,10 @@ name = "jlc"
 
 [dependencies]
 chrono = { version = "0.4.40", features = ["js-sys"] }
-jsonlogic = { version = "0.5.4", git = "https://github.com/ubamrein/jsonlogic_rs.git" }
+jsonlogic = { version = "0.5.4", git = "https://github.com/ubamrein/jsonlogic_rs.git", optional = true }
 peg = { version = "0.8.0" }
 serde_json = "1.0.64"
+
+[features]
+default = ["jsonlogic"]
+jsonlogic = ["dep:jsonlogic"]
